@@ -2,8 +2,17 @@ import { ServiceError, type Service } from "./contracts.js";
 export function engineUrl(url: string) {
   const parsed = new URL(url);
   const local = ["127.0.0.1", "localhost", "[::1]"].includes(parsed.hostname);
-  if ((parsed.protocol !== "https:" && !(parsed.protocol === "http:" && local)) || parsed.username || parsed.password || parsed.pathname !== "/" || parsed.search || parsed.hash)
-    throw new Error("Use a loopback HTTP or HTTPS engine origin without credentials, path, query or fragment.");
+  if (
+    (parsed.protocol !== "https:" && !(parsed.protocol === "http:" && local)) ||
+    parsed.username ||
+    parsed.password ||
+    parsed.pathname !== "/" ||
+    parsed.search ||
+    parsed.hash
+  )
+    throw new Error(
+      "Use a loopback HTTP or HTTPS engine origin without credentials, path, query or fragment.",
+    );
   return parsed.origin;
 }
 export function createClient(options: {
@@ -13,7 +22,8 @@ export function createClient(options: {
   clientInfo?: () => { name: string; version: string } | undefined;
 }) {
   const origin = engineUrl(options.url);
-  if (!options.token || options.token.length > 4096) throw new Error("A scoped consumer token is required.");
+  if (!options.token || options.token.length > 4096)
+    throw new Error("A scoped consumer token is required.");
   async function request(path: string, input?: unknown, signal?: AbortSignal) {
     const response = await fetch(`${origin}${path}`, {
       method: input === undefined ? "GET" : "POST",
@@ -57,15 +67,20 @@ export function createClient(options: {
     } finally {
       await reader.cancel();
     }
-    const text = new TextDecoder().decode(Uint8Array.from(parts.flatMap(p=>Array.from(p))));
+    const text = new TextDecoder().decode(
+      Uint8Array.from(parts.flatMap((p) => Array.from(p))),
+    );
     const value: unknown = JSON.parse(text);
-    if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid engine response.");
+    if (!value || typeof value !== "object" || Array.isArray(value))
+      throw new Error("Invalid engine response.");
     return value as Record<string, unknown>;
   }
   return {
     capabilities: () => request("/v1/capabilities"),
+    patterns: () => request("/v1/patterns"),
     run: (service: Service, input: unknown, signal?: AbortSignal) => {
-      if (!["decide","logs","tree","dialogue"].includes(service)) throw new Error("Unknown service.");
+      if (!["decide", "logs", "tree", "dialogue"].includes(service))
+        throw new Error("Unknown service.");
       return request(`/v1/${service}`, input, signal);
     },
   };

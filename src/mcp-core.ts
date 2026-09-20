@@ -1,14 +1,16 @@
+import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { inputSchemas, services } from "./contracts.js";
 export function serviceMcpServer(client: {
   capabilities(): Promise<Record<string, unknown>>;
+  patterns?(): Promise<Record<string, unknown>>;
   run(
     service: (typeof services)[number],
     input: unknown,
     signal?: AbortSignal,
   ): Promise<Record<string, unknown>>;
 }) {
-  const server = new McpServer({ name: "sysone-client", version: "0.3.0" });
+  const server = new McpServer({ name: "sysone-client", version: "0.4.0" });
 
   const descriptions = {
     decide:
@@ -35,6 +37,49 @@ export function serviceMcpServer(client: {
         content: [{ type: "text" as const, text: JSON.stringify(result) }],
         structuredContent: result,
       };
+    },
+  );
+  server.registerTool(
+    "sysone_patterns",
+    {
+      description:
+        "Discover practical decision recipes with evidence links. Omit id for a compact catalog; pass one id for its editable input and limits. No model call. Choose a pattern before drafting a new evaluation.",
+      inputSchema: {
+        id: z
+          .string()
+          .regex(/^[a-z0-9-]{1,64}$/)
+          .optional(),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+      },
+    },
+    async ({ id }) => {
+      try {
+        const catalog = (await client.patterns?.()) ?? { patterns: [] };
+        const patterns = Array.isArray(catalog.patterns)
+          ? (catalog.patterns as Record<string, unknown>[])
+          : [];
+        const result = id
+          ? { patterns: patterns.filter((p) => p.id === id) }
+          : { patterns: patterns.map(({ input, ...p }) => p) };
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(result) }],
+          structuredContent: result,
+        };
+      } catch {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text" as const,
+              text: "Pattern catalog unavailable. Use sysone_status to check the connection.",
+            },
+          ],
+        };
+      }
     },
   );
   for (const service of services)

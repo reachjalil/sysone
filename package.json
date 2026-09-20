@@ -1,7 +1,7 @@
 {
   "name": "sysone",
-  "version": "0.3.0",
-  "description": "Open-source client, MCP bridge and agent skill for System One Engine",
+  "version": "0.4.0",
+  "description": "Launch System One locally: decision studio, public SDK, MCP bridge and agent skill",
   "type": "module",
   "license": "MIT",
   "author": "Jalil Laaraichi",

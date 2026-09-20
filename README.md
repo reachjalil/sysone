@@ -6,20 +6,38 @@ a small HTTP client, a local MCP bridge and an agent skill for bounded evaluatio
 The System One Engine application and studio are **private-source software**, maintained
 separately. This repository contains the public integration layer. It does not contain
 the engine, provider implementation, studio, usage database or administrator routes.
-It does not install or launch an engine. Obtain access to a running engine and a scoped
-consumer credential from its owner before making requests.
+The launcher downloads a version-pinned, SHA-256 verified compiled application
+runtime under its separate preview license. Application source stays private.
 
-Version 0.3 introduces the client-only distribution. An earlier 0.2 preview bundled
-the engine; engine installation commands are not part of this package.
+## Start the app
 
-## Install
+```sh
+npx sysone
+```
+
+One command starts the local engine and opens Studio. Add your Vercel AI Gateway
+key in **Settings**, try a pattern from **Library**, then create a scoped agent
+connection in **Connections**. The app owns its server; no separate server command
+or source checkout is required. Keep the terminal running; Ctrl+C stops the engine.
+A second launch reuses a matching engine and opens its Studio.
+
+Node 22.18+ and internet access for the first download are required. The runtime is
+cached under `~/.cache/systemoneengine`; private settings live under
+`~/.config/systemoneengine`. Startup makes no inference request. Provider usage
+requires your own Gateway account. The preview has no System One subscription fee.
+
+Use `npx sysone app --no-open` without a browser, or `--port 4320 --home /private/path`
+for an isolated instance. Existing engines are reused only when the owner token
+matches. No background daemon is installed.
+
+## Use the SDK
 
 ```sh
 npm install sysone
 ```
 
 Node 22.18+ is required. Your provider key stays with the engine; this client needs
-only its URL and a scoped consumer token.
+only its URL and a scoped consumer token. `engine.patterns()` discovers editable recipes.
 
 ```js
 import { createClient } from 'sysone/client';
@@ -52,7 +70,7 @@ npx sysone mcp --connection /private/path/agent.json
 
 A client can launch the stdio MCP bridge with command `npx` and arguments
 `["-y", "sysone", "mcp", "--connection", "/private/path/agent.json"]`.
-The bridge exposes `sysone_status`, `sysone_decide`, `sysone_logs`, `sysone_tree` and
+The bridge exposes `sysone_status`, `sysone_patterns`, `sysone_decide`, `sysone_logs`, `sysone_tree` and
 `sysone_dialogue`. Each request uses the credential's services and remaining limits.
 
 If no explicit connection or environment pair is supplied, the CLI reads
@@ -93,4 +111,4 @@ pnpm install --frozen-lockfile
 pnpm test
 ```
 
-MIT licensed. The private engine's licensing and availability are separate.
+MIT licensed. The compiled application runtime is distributed under its separate preview license.

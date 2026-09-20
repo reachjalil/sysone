@@ -34,5 +34,5 @@ test('published CLI MCP bridge initializes and forwards tool calls with client m
 },async url=>{
  const home=await mkdtemp(join(tmpdir(),'sysone-client-'));const connection=join(home,'agent.json');await writeFile(connection,JSON.stringify({url,token:'fixture-token'}),{mode:0o600});
  const client=new Client({name:'Public client test',version:'1.0'});const transport=new StdioClientTransport({command:process.execPath,args:[resolve('dist/cli.js'),'mcp','--connection',connection],stderr:'pipe'});
- try{await client.connect(transport);assert.equal((await client.listTools()).tools.length,5);const result=await client.callTool({name:'sysone_decide',arguments:input});assert.equal(result.structuredContent.meta.calls,1);}finally{await client.close();await rm(home,{recursive:true,force:true});}
+ try{await client.connect(transport);assert.equal((await client.listTools()).tools.length,6);const result=await client.callTool({name:'sysone_decide',arguments:input});assert.equal(result.structuredContent.meta.calls,1);}finally{await client.close();await rm(home,{recursive:true,force:true});}
 }));

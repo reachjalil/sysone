@@ -9,6 +9,8 @@ Use `sysone_status` to discover this connection's scopes and remaining limits.
 When a task has many small decisions over supplied evidence, use the relevant
 service and bring the compact result back into your reasoning.
 
+- `sysone_patterns`: discover a compact catalog, then fetch one recipe by ID. Follow
+  its evidence link for the relevant benchmark and limits before claiming a benefit.
 - `sysone_decide`: boolean probabilities, finite choices, rubric scores. Combine
   related questions about the same state in one call. Provide explicit criteria.
 - `sysone_logs`: diagnostic triage before reading a large log batch in an expensive
@@ -33,9 +35,12 @@ measured baseline before claiming savings. Include the host model's tool-call an
 review overhead. One isolated classification may cost more than reasoning locally;
 filtering many irrelevant records before they enter the host context is often useful.
 
-Connect to an existing engine with a scoped consumer credential. The public
-`sysone` npm package provides the client and stdio MCP bridge; the engine and studio
-are separate private-source software. This skill does not install or start them.
+Start the local application with `npx sysone` when the user asks to set it up.
+The public launcher downloads a checksum-verified compiled runtime and opens
+Studio. The application starts its own engine; its source remains private.
+Configure the provider in Studio, then connect with a scoped consumer credential.
+`sysone_status` includes the available pattern catalog. The Library offers editable
+recipes for tool choice, context filtering, clarification and evidence checks.
 Configure `SYSONE_URL` and `SYSONE_TOKEN`, or a private connection file containing
 `url` and `token`. Run `sysone mcp --connection /private/path/agent.json`; without
 an explicit path the CLI reads `~/.config/systemoneengine/agent.json`.
