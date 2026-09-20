@@ -40,7 +40,8 @@
     "skills",
     "examples",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "native"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",

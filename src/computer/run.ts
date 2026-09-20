@@ -60,6 +60,18 @@ export async function runComputer(
         observation.observationId,
         goal,
         abort,
+        [
+          ...options.fields.map((f) => ({
+            name: f.name,
+            kind: "type" as const,
+            value: f.text,
+          })),
+          ...options.selections.map((f) => ({
+            name: f.name,
+            kind: "select" as const,
+            value: f.option,
+          })),
+        ],
       );
       abort.throwIfAborted();
       const step: Record<string, unknown> = {
@@ -157,7 +169,7 @@ export async function runComputer(
     steps.push({
       error:
         error instanceof Error ? error.message : "Computer operation failed.",
-      ...(error instanceof ServiceError ? {httpStatus: error.status} : {}),
+      ...(error instanceof ServiceError ? { httpStatus: error.status } : {}),
     });
   }
   let final: Awaited<ReturnType<BrowserSession["observe"]>> | undefined;

@@ -6,6 +6,7 @@ import { homedir } from "node:os";
 import { createClient } from "./client.js";
 import { launchApp } from "./launcher.js";
 import { startComputerMcp } from "./computer/mcp.js";
+import { computerDoctor } from "./computer/doctor.js";
 import { startMcp } from "./mcp.js";
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -14,6 +15,7 @@ const { values, positionals } = parseArgs({
     home: { type: "string" },
     port: { type: "string" },
     "no-open": { type: "boolean" },
+    desktop: { type: "boolean" },
     help: { type: "boolean", short: "h" },
   },
 });
@@ -27,6 +29,8 @@ try {
   sysone status [--connection /private/path/agent.json]
   sysone mcp [--connection /private/path/agent.json]
   sysone computer --connection /private/path/agent.json  MCP browser companion
+  sysone computer doctor [--desktop]  Check browser and optional Mac AX setup
+  sysone computer --desktop --connection /private/path/agent.json  Also expose read-only Mac AX
 
 App options: --port 4319 --home /private/path
 The open-source launcher downloads a checksum-verified application runtime.
@@ -35,7 +39,11 @@ The application runtime has a separate preview license; its source is private.
 MCP/status use SYSONE_URL and SYSONE_TOKEN, or a scoped connection file.
 Default connection: ~/.config/systemoneengine/agent.json
 Documentation: https://systemoneengine.com/docs/`);
-  else if (command === "app" || command === "studio")
+  else if (command === "computer" && positionals[1] === "doctor") {
+    const report = await computerDoctor({ desktop: values.desktop });
+    console.log(JSON.stringify(report, null, 2));
+    if (!report.browserReady) process.exitCode = 1;
+  } else if (command === "app" || command === "studio")
     await launchApp({
       port: values.port,
       home: values.home,
@@ -62,7 +70,8 @@ Documentation: https://systemoneengine.com/docs/`);
     )
       throw Error("Invalid connection");
     const connection = { url: raw.url, token: raw.token };
-    if (command === "computer") await startComputerMcp(connection);
+    if (command === "computer")
+      await startComputerMcp(connection, { desktop: values.desktop });
     else if (command === "mcp") await startMcp(connection);
     else if (command === "status")
       console.log(

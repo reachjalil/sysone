@@ -3,7 +3,8 @@ import puppeteer, {
   type Page,
   type CDPSession,
 } from "puppeteer-core";
-import { existsSync } from "node:fs";
+import { chromePath } from "./browser-path.js";
+import { accessibilitySnapshot } from "./accessibility.js";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -26,11 +27,20 @@ export class BrowserSession {
     id: string;
     objectId: string;
     screen: ScreenObservation;
+    domControls: ScreenObservation["controls"];
+    axFingerprint?: string;
   };
   private count = 0;
   private busy = false;
   private generation = 0;
-  readonly history: { operation: string; target?: string; at: string }[] = [];
+  private axEnabled = false;
+  readonly history: {
+    operation: string;
+    target?: string;
+    name?: string;
+    context?: string[];
+    at: string;
+  }[] = [];
   constructor(
     private options: { headless?: boolean; executablePath?: string } = {},
   ) {}
@@ -49,22 +59,7 @@ export class BrowserSession {
       throw Error(
         "Start with an HTTP or HTTPS URL without embedded credentials.",
       );
-    const executablePath =
-      this.options.executablePath ||
-      process.env.SYSONE_CHROME_PATH ||
-      [
-        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-        "/usr/bin/google-chrome",
-        "/usr/bin/chromium",
-        "/usr/bin/chromium-browser",
-        join(
-          process.env.PROGRAMFILES || "C:\\Program Files",
-          "Google",
-          "Chrome",
-          "Application",
-          "chrome.exe",
-        ),
-      ].find(existsSync);
+    const executablePath = chromePath(this.options.executablePath);
     if (!executablePath)
       throw Error(
         "Install Chrome/Chromium or set SYSONE_CHROME_PATH. No browser is downloaded.",
@@ -94,6 +89,10 @@ export class BrowserSession {
       this.page.setDefaultNavigationTimeout(15000);
       this.cdp = await this.page.createCDPSession();
       await this.cdp.send("Page.enable");
+      this.axEnabled = await this.cdp.send("Accessibility.enable").then(
+        () => true,
+        () => false,
+      );
       await this.cdp.send("Browser.setDownloadBehavior", { behavior: "deny" });
       await this.page.setRequestInterception(true);
       this.page.on("request", (request) => {
@@ -178,7 +177,38 @@ export class BrowserSession {
       });
       if (result.exceptionDetails) throw Error("The page observation failed.");
       const screen = result.result.value as ScreenObservation;
-      this.observation = { id: randomUUID(), objectId, screen };
+      const domControls = screen.controls;
+      let axFingerprint: string | undefined;
+      if (this.axEnabled) {
+        try {
+          const ax = await accessibilitySnapshot(
+            this.cdp,
+            objectId,
+            domControls,
+          );
+          screen.controls = ax.controls;
+          axFingerprint = ax.fingerprint;
+          screen.accessibility = {
+            status: "available",
+            mappedControls: ax.controls.length,
+            omittedControls: domControls.length - ax.controls.length,
+          };
+        } catch {
+          screen.controls = domControls.map((c) => ({
+            ...c,
+            source: "dom-fallback",
+          }));
+        }
+      }
+      this.observation = {
+        id: randomUUID(),
+        objectId,
+        screen,
+        domControls,
+        axFingerprint,
+      };
+      // Do not combine AX from one page revision with DOM from another.
+      await this.checkDomFresh();
       const jpeg = screenshot
         ? await this.page.screenshot({ type: "jpeg", quality: 65 })
         : undefined;
@@ -190,9 +220,8 @@ export class BrowserSession {
       };
     });
   }
-  async current(id: string) {
-    if (!this.observation || this.observation.id !== id || !this.cdp)
-      throw Error("This observation is no longer current. Observe again.");
+  private async checkDomFresh() {
+    if (!this.observation || !this.cdp) throw Error("Observe the page first.");
     let fresh = false;
     try {
       const r = await this.cdp.send("Runtime.callFunctionOn", {
@@ -206,11 +235,44 @@ export class BrowserSession {
       throw Error(
         "The screen changed. Observe again before deciding or acting.",
       );
-    return this.observation.screen;
+  }
+  async current(id: string) {
+    if (!this.observation || this.observation.id !== id || !this.cdp)
+      throw Error("This observation is no longer current. Observe again.");
+    const observation = this.observation;
+    await this.checkDomFresh();
+    if (observation.axFingerprint !== undefined) {
+      let fingerprint: string | undefined;
+      try {
+        fingerprint = (
+          await accessibilitySnapshot(
+            this.cdp,
+            observation.objectId,
+            observation.domControls,
+          )
+        ).fingerprint;
+      } catch {}
+      if (fingerprint !== observation.axFingerprint)
+        throw Error(
+          "Accessibility state changed. Observe again before acting.",
+        );
+      await this.checkDomFresh();
+    }
+    if (this.observation !== observation)
+      throw Error("This observation is no longer current. Observe again.");
+    return observation.screen;
   }
   async act(id: string, action: ComputerAction) {
     return this.locked(async () => {
-      await this.current(id);
+      const screen = await this.current(id);
+      const target = screen.controls.find((c) => c.id === action.target);
+      if (
+        ["click", "type", "select"].includes(action.operation) &&
+        (!target || target.kind !== action.operation)
+      )
+        throw Error(
+          "Action was not admitted: incompatible or inaccessible target. Observe again.",
+        );
       if (action.operation === "wait") {
         await new Promise((resolve) => setTimeout(resolve, 350));
         this.history.push({ operation: "wait", at: new Date().toISOString() });
@@ -239,6 +301,7 @@ export class BrowserSession {
       this.history.push({
         operation: action.operation,
         target: action.target,
+        ...(target ? { name: target.name, context: target.context } : {}),
         at: new Date().toISOString(),
       });
       if (this.history.length > 12) this.history.shift();
@@ -265,23 +328,27 @@ export class BrowserSession {
     this.browser = undefined;
     this.page = undefined;
     this.cdp = undefined;
+    this.axEnabled = false;
     this.observation = undefined;
     this.folder = undefined;
     this.count = 0;
     this.history.length = 0;
-    if (browser) {
-      const timeout = setTimeout(
-        () => browser.process()?.kill("SIGKILL"),
-        5000,
-      );
-      timeout.unref();
-      try {
-        await browser.close();
-      } finally {
-        clearTimeout(timeout);
+    try {
+      if (browser) {
+        const timeout = setTimeout(
+          () => browser.process()?.kill("SIGKILL"),
+          5000,
+        );
+        timeout.unref();
+        try {
+          await browser.close();
+        } finally {
+          clearTimeout(timeout);
+        }
       }
+    } finally {
+      if (folder) await rm(folder, { recursive: true, force: true });
     }
-    if (folder) await rm(folder, { recursive: true, force: true });
     return { closed: true };
   }
 }

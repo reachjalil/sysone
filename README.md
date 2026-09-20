@@ -87,6 +87,10 @@ not run an OAuth login flow. Hosted web clients cannot directly reach loopback.
 
 ## Browser companion
 
+Version 0.6.0 is a source preview until its npm publication completes. To test this
+checkout now, run `pnpm install --frozen-lockfile`, `pnpm build`, then
+`node dist/cli.js computer doctor`.
+
 Use a local helper with either your cloud account or local engine:
 
 ```sh
@@ -98,8 +102,12 @@ servers. It opens a separate Chrome session only when the agent calls
 `sysone_computer_start`. Chrome or Chromium and Node 22.18+ must be installed.
 `SYSONE_CHROME_PATH` can select the executable. No browser download is included.
 
+Run `sysone computer doctor` to check local setup without a token or model call.
+Add `--desktop` to opt into the experimental read-only Mac accessibility adapter.
+
 The agent receives screenshots and observed control IDs. Jev receives bounded text
-and control descriptions through the configured engine. It proposes the next action.
+and Chrome-computed accessibility names, roles, states and group context through the
+configured engine. Open shadow roots are supported. It proposes the next action.
 The companion executes caller-authorized actions in its own browser and returns the
 new screen. A bounded run performs up to 12 decisions in one tool call, then returns
 its trace and a final screenshot for the agent to verify.

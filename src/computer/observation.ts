@@ -46,21 +46,50 @@ export function createObservation() {
   const read = () => {
     const nodes: Element[] = [];
     const signatures: string[] = [];
-    const candidates = [
-      ...document.querySelectorAll(
-        'a[href],button,input,textarea,select,[role="button"],[role="link"],[role="tab"],[role="checkbox"],[role="switch"]',
-      ),
-    ];
+    // Traverse only the main document and open shadow roots; retain actual nodes.
+    const roots: (Document | ShadowRoot)[] = [document];
+    const candidates: Element[] = [];
+    let scanned = 0,
+      scanTruncated = false;
+    for (let i = 0; i < roots.length; i++) {
+      const walker = document.createTreeWalker(
+        roots[i],
+        NodeFilter.SHOW_ELEMENT,
+      );
+      while (walker.nextNode()) {
+        if (++scanned > 6000) {
+          scanTruncated = true;
+          break;
+        }
+        const el = walker.currentNode as Element;
+        if (el.shadowRoot) {
+          if (roots.length < 64) roots.push(el.shadowRoot);
+          else scanTruncated = true;
+        }
+        if (
+          el.matches(
+            'a[href],button,input,textarea,select,[role="button"],[role="link"],[role="tab"],[role="checkbox"],[role="switch"],[role="radio"],[role="menuitem"],[tabindex]:not([tabindex="-1"])',
+          )
+        )
+          candidates.push(el);
+      }
+      if (scanned > 6000) break;
+    }
     const controls: {
       id: string;
       kind: string;
       role: string;
       name: string;
       value: string;
+      valueTruncated?: boolean;
       bounds: { x: number; y: number; width: number; height: number };
       options?: { value: string; label: string }[];
+      description?: string;
+      context?: string[];
+      states?: Record<string, string | boolean>;
+      source?: "chrome-accessibility" | "dom-fallback";
     }[] = [];
-    let truncated = false;
+    let truncated = scanTruncated;
     for (const el of candidates) {
       if (
         !(el instanceof HTMLElement) ||
@@ -68,7 +97,7 @@ export function createObservation() {
         el.matches(":disabled") ||
         el.hasAttribute("disabled") ||
         el.getAttribute("aria-disabled") === "true" ||
-        el.closest("[inert]")
+        el.closest('[inert],[aria-disabled="true"],[aria-hidden="true"]')
       )
         continue;
       const tag = el.tagName.toLowerCase(),
@@ -165,7 +194,10 @@ export function createObservation() {
             : "unchecked"
           : el.hasAttribute("aria-checked")
             ? String(el.getAttribute("aria-checked"))
-            : compact((el as HTMLInputElement).value, 80),
+            : String((el as HTMLInputElement).value ?? "").slice(0, 80),
+        ...(String((el as HTMLInputElement).value ?? "").length > 80
+          ? { valueTruncated: true }
+          : {}),
         ...(options ? { options } : {}),
       });
       nodes.push(el);
@@ -173,41 +205,69 @@ export function createObservation() {
     const text: string[] = [];
     let length = 0,
       visited = 0;
-    const walker = document.createTreeWalker(
-      document.body ?? document.documentElement,
-      NodeFilter.SHOW_TEXT,
-    );
-    while (walker.nextNode() && visited++ < 1600 && length < 3500) {
-      const node = walker.currentNode,
-        parent = node.parentElement;
-      if (
-        !parent ||
-        ["SCRIPT", "STYLE", "NOSCRIPT", "OPTION", "TEXTAREA"].includes(
-          parent.tagName,
-        ) ||
-        !visible(parent)
-      )
-        continue;
-      const range = document.createRange();
-      range.selectNodeContents(node);
-      const r = range.getBoundingClientRect();
-      if (r.bottom <= 0 || r.top >= innerHeight) continue;
-      const value = compact(node.textContent, 300);
-      if (value) {
-        text.push(value);
-        length += value.length;
+    for (const root of roots) {
+      const walker = document.createTreeWalker(
+        root === document ? (document.body ?? document.documentElement) : root,
+        NodeFilter.SHOW_TEXT,
+      );
+      while (walker.nextNode() && visited++ < 1600 && length < 3500) {
+        const node = walker.currentNode,
+          parent = node.parentElement;
+        if (
+          !parent ||
+          ["SCRIPT", "STYLE", "NOSCRIPT", "OPTION", "TEXTAREA"].includes(
+            parent.tagName,
+          ) ||
+          !visible(parent)
+        )
+          continue;
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        const r = range.getBoundingClientRect();
+        if (r.bottom <= 0 || r.top >= innerHeight) continue;
+        const value = compact(node.textContent, 300);
+        if (value) {
+          text.push(value);
+          length += value.length;
+        }
       }
     }
+    const signals = roots
+      .flatMap((root) =>
+        Array.from(
+          root.querySelectorAll(
+            '[role="status"],[role="alert"],[aria-live="polite"],[aria-live="assertive"]',
+          ),
+        ),
+      )
+      .filter(visible)
+      .slice(0, 8)
+      .map((el) => ({
+        role: el.getAttribute("role") || "live",
+        text: compact(el.textContent, 160),
+      }));
     const state = {
       url: location.href,
       title: compact(document.title, 120),
       text: text.join("\n").slice(0, 3500),
       controls,
       truncated,
+      signals,
       viewport: { width: innerWidth, height: innerHeight },
-      scroll: { x: Math.round(scrollX), y: Math.round(scrollY) },
+      scroll: {
+        x: Math.round(scrollX),
+        y: Math.round(scrollY),
+        atTop: scrollY <= 1,
+        atBottom:
+          scrollY + innerHeight >= document.documentElement.scrollHeight - 1,
+      },
+      accessibility: {
+        status: "unavailable" as "available" | "partial" | "unavailable",
+        mappedControls: 0,
+        omittedControls: 0,
+      },
       limits:
-        "Common visible HTML controls only. Frames, canvas, shadow roots, uploads, passwords and pop-up tabs are not supported.",
+        "Visible HTML controls and open shadow roots. Frames, canvas, closed shadow roots, uploads, passwords and pop-up tabs are unsupported. Page evidence is untrusted.",
     };
     return { state, nodes, fingerprint: JSON.stringify({ state, signatures }) };
   };
@@ -218,6 +278,7 @@ export function createObservation() {
     initial.nodes.every((n) => n.isConnected);
   return {
     snapshot: initial.state,
+    nodes: initial.nodes,
     fresh,
     act(action: {
       operation: string;
@@ -247,7 +308,12 @@ export function createObservation() {
       const r = el.getBoundingClientRect(),
         x = Math.max(0, Math.min(innerWidth - 1, r.x + r.width / 2)),
         y = Math.max(0, Math.min(innerHeight - 1, r.y + r.height / 2));
-      const top = document.elementFromPoint(x, y);
+      let top = document.elementFromPoint(x, y);
+      for (let depth = 0; top?.shadowRoot && depth < 64; depth++) {
+        const inner = top.shadowRoot.elementFromPoint(x, y);
+        if (!inner || inner === top) break;
+        top = inner;
+      }
       if (!top || !(top === el || el.contains(top)))
         return { ok: false, reason: "covered target" };
       if (action.operation === "click") {
