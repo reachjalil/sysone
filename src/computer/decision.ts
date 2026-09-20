@@ -58,7 +58,7 @@ export function computerQuestions(
     if (Object.keys(choices).length)
       questions[kind + "_target"] = {
         type: "choice",
-        instructions: `If the chosen operation is ${kind}, select its single compatible target. Otherwise choose none. Return none when there is no justified match. Do not invent a target.`,
+        instructions: `Select the best observed target for a ${kind} operation toward the goal. This question is evaluated independently of the operation question. Use the shared page state, including current field values. Choose none if this operation has no useful target. Never refill a field that already matches.`,
         criteria: {
           ...choices,
           none: "No justified target for this operation",
@@ -70,6 +70,7 @@ export function computerQuestions(
       url: new URL(screen.url).origin + new URL(screen.url).pathname,
       title: screen.title,
       visibleText: screen.text,
+      controls: screen.controls.map(({ id, kind, role, name, value, options }) => ({ id, kind, role, name, value, ...(options ? { options } : {}) })),
       scroll: screen.scroll,
       truncated: screen.truncated,
     },

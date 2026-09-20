@@ -55,6 +55,9 @@ test("dedicated browser observes images and real controls; text, choice and clic
     );
     o = await s.observe(false);
     assert.equal(control(o.screen, "Project name").value, "Alpha");
+    const shared = JSON.parse(computerQuestions(o.screen, "Save Alpha", []).state);
+    assert.equal(shared.page.controls.find(c => c.name === "Project name").value, "Alpha");
+    assert.ok(shared.page.controls.find(c => c.name === "Mode").options.some(o => o.value === "light"));
     assert.equal(o.image, undefined);
     await s.act(o.observationId, {
       operation: "select",

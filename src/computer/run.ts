@@ -1,4 +1,5 @@
 import type { createClient } from "../client.js";
+import { ServiceError } from "../contracts.js";
 import { adviseComputer } from "./decision.js";
 import type { BrowserSession, ComputerAction } from "./session.js";
 
@@ -68,6 +69,7 @@ export async function runComputer(
         elapsedMs: advice.elapsedMs,
         requestId: advice.engine.requestId,
         meta: advice.engine.meta,
+        answers: advice.engine.result,
       };
       steps.push(step);
       if (advice.status !== "proposed" || !advice.proposal) {
@@ -155,6 +157,7 @@ export async function runComputer(
     steps.push({
       error:
         error instanceof Error ? error.message : "Computer operation failed.",
+      ...(error instanceof ServiceError ? {httpStatus: error.status} : {}),
     });
   }
   let final: Awaited<ReturnType<BrowserSession["observe"]>> | undefined;
