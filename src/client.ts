@@ -1,4 +1,4 @@
-import { ServiceError, type Service } from "./contracts.js";
+import { ServiceError, type Service, RunPatternInput, type PatternRequest } from "./contracts.js";
 export function engineUrl(url: string) {
   const parsed = new URL(url);
   const local = ["127.0.0.1", "localhost", "[::1]"].includes(parsed.hostname);
@@ -78,6 +78,7 @@ export function createClient(options: {
   return {
     capabilities: () => request("/v1/capabilities"),
     patterns: () => request("/v1/patterns"),
+    runPattern: (input: PatternRequest, signal?: AbortSignal) => request("/v1/patterns/run", RunPatternInput.parse(input), signal),
     run: (service: Service, input: unknown, signal?: AbortSignal) => {
       if (!["decide", "logs", "tree", "dialogue"].includes(service))
         throw new Error("Unknown service.");

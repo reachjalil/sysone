@@ -47,9 +47,13 @@ const engine = createClient({
   token: process.env.SYSONE_TOKEN,
 });
 console.log(await engine.capabilities());
-const result = await engine.run('decide', {
-  state: 'The support agent issued a full refund.',
-  questions: { refunded: { type: 'boolean', instructions: 'Was a refund issued?' } },
+const result = await engine.runPattern({
+  pattern: 'palette-match',
+  state: 'A calm dark workspace with one restrained accent.',
+  candidates: {
+    slate: 'Dark slate, pale text, restrained blue accent',
+    festival: 'Bright yellow, magenta and saturated orange',
+  },
 });
 ```
 
@@ -70,7 +74,7 @@ npx sysone mcp --connection /private/path/agent.json
 
 A client can launch the stdio MCP bridge with command `npx` and arguments
 `["-y", "sysone", "mcp", "--connection", "/private/path/agent.json"]`.
-The bridge exposes `sysone_status`, `sysone_patterns`, `sysone_decide`, `sysone_logs`, `sysone_tree` and
+The bridge exposes `sysone_status`, `sysone_patterns`, `sysone_run`, `sysone_decide`, `sysone_logs`, `sysone_tree` and
 `sysone_dialogue`. Each request uses the credential's services and remaining limits.
 
 If no explicit connection or environment pair is supplied, the CLI reads
@@ -80,6 +84,22 @@ administrator token. Avoid putting tokens directly in command-line arguments.
 The engine also exposes Streamable HTTP MCP at `/mcp`; clients that support it can
 connect directly with their supported bearer/OAuth setup. This stdio bridge does
 not run an OAuth login flow. Hosted web clients cannot directly reach loopback.
+
+## Let an agent use Jev
+
+1. Call `sysone_patterns` with `{"query":"palette"}` to find a recipe.
+2. Call `sysone_run` with `pattern`, `state` and the required `candidates`.
+3. Read the answers, usage and recipe policy. Keep an uncertain decision with the calling agent.
+
+The library has 30 recipes, including item matching, source selection, citation
+checks and diagnostic tests. Selection recipes require your own ID-to-description
+map. The engine adds a `review` choice when no candidate fits. Other decision
+recipes use fixed questions and need only `pattern` and `state`. Use
+`sysone_patterns` with an `id` to inspect those questions first. Tree, logs and
+dialogue use their separate service tools. `sysone_decide` accepts custom questions.
+
+Examples and research confidence are documented in [System One Bench](https://systemoneengine.com/bench/).
+Confidence ratings describe the evidence behind a use case, not calibrated model probabilities.
 
 ## Agent skill
 

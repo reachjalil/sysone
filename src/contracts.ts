@@ -109,3 +109,13 @@ export class ServiceError extends Error {
     this.status = status;
   }
 }
+
+
+export const RunPatternInput = z.object({
+  pattern: z.string().regex(/^[a-z0-9-]{1,64}$/),
+  state: z.string().min(1).max(12000),
+  candidates: z.record(z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]{0,39}$/), z.string().min(1).max(500))
+    .refine(value => Object.keys(value).length >= 1 && Object.keys(value).length <= 32 && !Object.hasOwn(value, 'review'), 'Supply 1 to 32 candidates; review is reserved.')
+    .optional(),
+}).strict();
+export type PatternRequest = z.infer<typeof RunPatternInput>;

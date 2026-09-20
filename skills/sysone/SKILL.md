@@ -1,52 +1,47 @@
 ---
 name: sysone
-description: Use System One Engine to offload bounded classification, log triage, taxonomy selection, and optional dialogue pacing to a fast evaluation model. Keep planning, synthesis, code changes and ambiguous judgments with the caller.
+description: Use System One to run Jev recipes over supplied evidence or candidate items. Useful for repeated checks, context selection, palette or item matching and tool recommendations. The calling agent keeps writing, planning and actions.
 ---
 
-# System One Engine
+# System One
 
-Use `sysone_status` to discover this connection's scopes and remaining limits.
-When a task has many small decisions over supplied evidence, use the relevant
-service and bring the compact result back into your reasoning.
+Use an existing scoped connection. The user starts the local app with `npx sysone`
+and configures its provider in Studio. Ask `sysone_status` when connection limits
+or service availability are unknown. Do not request the provider key in chat.
 
-- `sysone_patterns`: discover a compact catalog, then fetch one recipe by ID. Follow
-  its evidence link for the relevant benchmark and limits before claiming a benefit.
-- `sysone_decide`: boolean probabilities, finite choices, rubric scores. Combine
-  related questions about the same state in one call. Provide explicit criteria.
-- `sysone_logs`: diagnostic triage before reading a large log batch in an expensive
-  model. Archive every record. Errors, protected records and uncertainty stay eligible.
-- `sysone_tree`: choose from a large supplied taxonomy. Prefer meaningful groups;
-  arbitrary contiguous buckets may hide an interior option's meaning.
-- `sysone_dialogue`: select an eligible recorded remark or silence, from current
-  evidence and exact cue history. The game owns playback and rejects stale context.
+For a small decision, search `sysone_patterns` with one or two task words such as
+`palette`, `item`, `citation` or `tool`. The compact result names the recipe, its
+policy and related evidence. Fetch an ID only when you need the editable example.
 
-Do not send a task here just because it can be phrased as a question. Keep novel
-planning, causal analysis, writing, coding and open-ended synthesis with the host
-model. A short deterministic check is usually cheaper than either model.
+Run a decision recipe with `sysone_run`. Supply the recipe ID and the actual evidence
+as `state`. Selection recipes also need your candidate IDs and descriptions:
 
-Treat selected IDs as proposals, never authorization to execute actions. A reported
-probability is not calibrated accuracy. Keep absent confidence unknown. Escalate
-`unavailable`, `escalate`, uncertain or contradictory results to the caller; do not
-blindly retry or create recursive model delegation. The service cannot call a more
-expensive model on your behalf.
+```json
+{
+  "pattern": "palette-match",
+  "state": "Choose a calm dark palette for a reading app with one muted accent.",
+  "candidates": {
+    "slate": "Dark slate, pale text and a muted blue accent",
+    "festival": "Bright yellow, magenta and saturated orange"
+  }
+}
+```
 
-Compare latency, calls, input/output tokens, cache use and escalations against a
-measured baseline before claiming savings. Include the host model's tool-call and
-review overhead. One isolated classification may cost more than reasoning locally;
-filtering many irrelevant records before they enter the host context is often useful.
+The engine adds `review` as a possible answer. Use stable IDs for candidates that
+really exist. Filter exact constraints and unavailable options before calling.
+The caller checks color contrast, permissions and other deterministic requirements.
 
-Start the local application with `npx sysone` when the user asks to set it up.
-The public launcher downloads a checksum-verified compiled runtime and opens
-Studio. The application starts its own engine; its source remains private.
-Configure the provider in Studio, then connect with a scoped consumer credential.
-`sysone_status` includes the available pattern catalog. The Library offers editable
-recipes for tool choice, context filtering, clarification and evidence checks.
-Configure `SYSONE_URL` and `SYSONE_TOKEN`, or a private connection file containing
-`url` and `token`. Run `sysone mcp --connection /private/path/agent.json`; without
-an explicit path the CLI reads `~/.config/systemoneengine/agent.json`.
-Provider and administrator credentials belong to the engine owner, not this client.
+The response contains answers, usage and the recipe policy. Keep absent probability
+unknown. Review uncertain or contradictory answers. A selected ID does not authorize
+an action. Do not automatically retry or create recursive model delegation.
 
-A stdio bridge requires a harness that can launch a local process. A hosted web
-client needs a reachable HTTPS engine and its supported MCP authentication flow.
-Installing this skill does not expose localhost to the internet. See the package
-README for client setup; check status before requesting any inference.
+Use `sysone_decide` when an existing recipe does not fit and you can define explicit
+questions. It accepts up to eight questions over shared evidence. Use `sysone_logs`,
+`sysone_tree` and `sysone_dialogue` for their separate structured inputs. The dialogue
+caller owns cue history, playback and stale-context rejection.
+
+Keep generation, novel planning and causal analysis with the calling agent. Prefer
+code for exact matches, counting or known rules. A Jev call helps only when its value
+exceeds the added request and review work. Evidence ratings describe research support,
+not model confidence. Compare complete task quality, latency and cost before claiming
+savings. Recipes and illustrative examples are not benchmark guarantees.

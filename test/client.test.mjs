@@ -30,9 +30,21 @@ test('published CLI MCP bridge initializes and forwards tool calls with client m
  let body='';for await(const part of req)body+=part;
  res.setHeader('Content-Type','application/json');
  if(req.url==='/v1/capabilities')res.end(JSON.stringify({services:['decide'],connection:{name:'fixture'},usage:[]}));
+ else if(req.url==='/v1/patterns/run'){assert.equal(JSON.parse(body).pattern,'item-match');res.end(JSON.stringify({recipe:{id:'item-match'},meta:{calls:1}}));}
  else{assert.equal(req.url,'/v1/decide');assert.equal(decodeURIComponent(req.headers['x-sysone-client-name']),'Public client test');assert.deepEqual(JSON.parse(body),input);res.end(JSON.stringify({result:{answers:{refunded:{probability:.95}}},meta:{calls:1}}));}
 },async url=>{
  const home=await mkdtemp(join(tmpdir(),'sysone-client-'));const connection=join(home,'agent.json');await writeFile(connection,JSON.stringify({url,token:'fixture-token'}),{mode:0o600});
  const client=new Client({name:'Public client test',version:'1.0'});const transport=new StdioClientTransport({command:process.execPath,args:[resolve('dist/cli.js'),'mcp','--connection',connection],stderr:'pipe'});
- try{await client.connect(transport);assert.equal((await client.listTools()).tools.length,6);const result=await client.callTool({name:'sysone_decide',arguments:input});assert.equal(result.structuredContent.meta.calls,1);}finally{await client.close();await rm(home,{recursive:true,force:true});}
+ try{await client.connect(transport);assert.equal((await client.listTools()).tools.length,7);const result=await client.callTool({name:'sysone_decide',arguments:input});assert.equal(result.structuredContent.meta.calls,1);const recipe=await client.callTool({name:'sysone_run',arguments:{pattern:'item-match',state:'A small light',candidates:{a:'Small lamp'}}});assert.equal(recipe.structuredContent.recipe.id,'item-match');}finally{await client.close();await rm(home,{recursive:true,force:true});}
+}));
+
+test('recipe client validates input and sends the saved recipe request without provider credentials', () => server(async (req,res) => {
+ assert.equal(req.url,'/v1/patterns/run'); assert.equal(req.headers.authorization,'Bearer fixture-token');
+ let body=''; for await(const part of req) body+=part;
+ const value=JSON.parse(body);assert.equal(value.pattern,'item-match');assert.deepEqual(value.candidates,{a:'Small lamp'});
+ res.setHeader('Content-Type','application/json');res.end(JSON.stringify({recipe:{id:'item-match'},meta:{calls:1}}));
+},async url=>{
+ const client=createClient({url,token:'fixture-token'});
+ assert.equal((await client.runPattern({pattern:'item-match',state:'A small light',candidates:{a:'Small lamp'}})).recipe.id,'item-match');
+ assert.throws(()=>client.runPattern({pattern:'item-match',state:'A small light',candidates:{review:'Override'}}));
 }));

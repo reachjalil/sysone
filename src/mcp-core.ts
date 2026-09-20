@@ -1,16 +1,20 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { inputSchemas, services } from "./contracts.js";
+import { inputSchemas, services, RunPatternInput } from "./contracts.js";
 export function serviceMcpServer(client: {
   capabilities(): Promise<Record<string, unknown>>;
   patterns?(): Promise<Record<string, unknown>>;
+  runPattern?(
+    input: unknown,
+    signal?: AbortSignal,
+  ): Promise<Record<string, unknown>>;
   run(
     service: (typeof services)[number],
     input: unknown,
     signal?: AbortSignal,
   ): Promise<Record<string, unknown>>;
 }) {
-  const server = new McpServer({ name: "sysone-client", version: "0.4.0" });
+  const server = new McpServer({ name: "systemoneengine", version: "0.5.0" });
 
   const descriptions = {
     decide:
@@ -43,8 +47,9 @@ export function serviceMcpServer(client: {
     "sysone_patterns",
     {
       description:
-        "Discover practical decision recipes with evidence links. Omit id for a compact catalog; pass one id for its editable input and limits. No model call. Choose a pattern before drafting a new evaluation.",
+        "Find a recipe by task, such as palette, item, citation or tool. Pass query to search; pass id for an editable example and policy. No model call. Then use sysone_run with the recipe ID and your evidence.",
       inputSchema: {
+        query: z.string().max(160).optional(),
         id: z
           .string()
           .regex(/^[a-z0-9-]{1,64}$/)
@@ -56,15 +61,27 @@ export function serviceMcpServer(client: {
         openWorldHint: false,
       },
     },
-    async ({ id }) => {
+    async ({ id, query }) => {
       try {
         const catalog = (await client.patterns?.()) ?? { patterns: [] };
         const patterns = Array.isArray(catalog.patterns)
           ? (catalog.patterns as Record<string, unknown>[])
           : [];
+        const terms = (query ?? "").toLowerCase().split(/\s+/).filter(Boolean);
+        const matching = patterns.filter((p) =>
+          terms.every((term) =>
+            [p.id, p.title, p.category, p.description]
+              .join(" ")
+              .toLowerCase()
+              .includes(term),
+          ),
+        );
         const result = id
           ? { patterns: patterns.filter((p) => p.id === id) }
-          : { patterns: patterns.map(({ input, ...p }) => p) };
+          : { patterns: matching.map(p => ({
+              id: p.id, title: p.title, description: p.description, service: p.service,
+              requiresCandidates: Boolean(p.candidateQuestion),
+            })) };
         return {
           content: [{ type: "text" as const, text: JSON.stringify(result) }],
           structuredContent: result,
@@ -76,6 +93,40 @@ export function serviceMcpServer(client: {
             {
               type: "text" as const,
               text: "Pattern catalog unavailable. Use sysone_status to check the connection.",
+            },
+          ],
+        };
+      }
+    },
+  );
+  server.registerTool(
+    "sysone_run",
+    {
+      description:
+        "Run a saved Jev decision recipe without writing question prompts. Supply pattern and state. Selection recipes also require your candidates as an ID-to-description map; review is added automatically. Returns answers, usage and the recipe policy. No actions or text generation. Use sysone_patterns to find a recipe.",
+      inputSchema: RunPatternInput.shape,
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+    },
+    async (input, extra) => {
+      try {
+        if (!client.runPattern) throw new Error("Recipe execution unavailable");
+        const result = await client.runPattern(input, extra.signal);
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(result) }],
+          structuredContent: result,
+        };
+      } catch {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text" as const,
+              text: "Recipe could not run. Check its ID, required candidates, connection scope and limits with sysone_patterns or sysone_status. Keep the task with the caller; do not retry automatically.",
             },
           ],
         };
