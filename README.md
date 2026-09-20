@@ -9,6 +9,9 @@ the engine, provider implementation, studio, usage database or administrator rou
 It does not install or launch an engine. Obtain access to a running engine and a scoped
 consumer credential from its owner before making requests.
 
+Version 0.3 introduces the client-only distribution. An earlier 0.2 preview bundled
+the engine; engine installation commands are not part of this package.
+
 ## Install
 
 ```sh

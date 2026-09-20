@@ -8,7 +8,7 @@ export function serviceMcpServer(client: {
     signal?: AbortSignal,
   ): Promise<Record<string, unknown>>;
 }) {
-  const server = new McpServer({ name: "sysone-client", version: "0.1.0" });
+  const server = new McpServer({ name: "sysone-client", version: "0.3.0" });
 
   const descriptions = {
     decide:

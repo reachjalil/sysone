@@ -1,6 +1,6 @@
 {
   "name": "sysone",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Open-source client, MCP bridge and agent skill for System One Engine",
   "type": "module",
   "license": "MIT",
