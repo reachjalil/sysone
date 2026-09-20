@@ -355,3 +355,28 @@ test("changing a link destination or hidden form value invalidates the observati
     );
     await assert.rejects(() => s.current(o.observationId), /screen changed/);
   }));
+
+test('MCP bounded run returns the action trace and final image from the same session', () => fixture(async (_session, url) => {
+  const engine = createServer(async (req, res) => {
+    let body = ''; for await (const part of req) body += part;
+    const input = JSON.parse(body), page = JSON.parse(input.state).page;
+    let op, name;
+    if (page.visibleText.includes('Saved Alpha in light')) op = 'done';
+    else if (page.controls.find(c => c.name === 'Project name').value !== 'Alpha') [op, name] = ['type', 'Project name'];
+    else if (page.controls.find(c => c.name === 'Mode').value !== 'light') [op, name] = ['select', 'Mode'];
+    else [op, name] = ['click', 'Save preview'];
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify(await scripted([[op, name]]).run('decide', input)));
+  });
+  await new Promise(r => engine.listen(0, '127.0.0.1', r));
+  const {server} = computerMcpServer({url:`http://127.0.0.1:${engine.address().port}`,token:'fixture'},{headless:true});
+  const [a,b] = InMemoryTransport.createLinkedPair();const client = new Client({name:'browser-run-test',version:'1'});
+  try {
+    await server.connect(a);await client.connect(b);
+    await client.callTool({name:'sysone_computer_start',arguments:{url}});
+    const result=await client.callTool({name:'sysone_computer_run',arguments:runOptions});
+    assert.ok(!result.isError);assert.equal(result.structuredContent.stop,'verify_completion');assert.equal(result.structuredContent.actionsExecuted,3);
+    assert.match(result.structuredContent.final.screen.text,/Saved Alpha in light/);assert.ok(result.content.some(c=>c.type==='image'));
+    assert.ok(!JSON.stringify(result.structuredContent).includes('base64'));
+  } finally {await client.close();await server.close();await new Promise(r=>engine.close(r));}
+}));
