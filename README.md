@@ -124,6 +124,13 @@ more than a direct deterministic check.
 Public input schemas are exported from `sysone`. Examples are in `examples/`.
 Jev and provider calls happen in the engine, not this client.
 
+## Recorded dialogue reference
+
+The [recorded-reaction example](examples/recorded-dialogue.md) shows the pattern used
+by The Infinite Parable: one choice over eligible recordings, silence as an outcome,
+a current-scene check and authored fallback. It includes a small host-side helper
+and failure tests. It never plays audio or changes game state.
+
 ## Development
 
 ```sh
