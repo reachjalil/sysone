@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { createClient } from "./client.js";
 import { launchApp } from "./launcher.js";
+import { startComputerMcp } from "./computer/mcp.js";
 import { startMcp } from "./mcp.js";
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -25,6 +26,7 @@ try {
   sysone app --no-open       Start without opening a browser
   sysone status [--connection /private/path/agent.json]
   sysone mcp [--connection /private/path/agent.json]
+  sysone computer --connection /private/path/agent.json  MCP browser companion
 
 App options: --port 4319 --home /private/path
 The open-source launcher downloads a checksum-verified application runtime.
@@ -60,7 +62,8 @@ Documentation: https://systemoneengine.com/docs/`);
     )
       throw Error("Invalid connection");
     const connection = { url: raw.url, token: raw.token };
-    if (command === "mcp") await startMcp(connection);
+    if (command === "computer") await startComputerMcp(connection);
+    else if (command === "mcp") await startMcp(connection);
     else if (command === "status")
       console.log(
         JSON.stringify(await createClient(connection).capabilities(), null, 2),

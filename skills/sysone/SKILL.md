@@ -1,6 +1,6 @@
 ---
 name: sysone
-description: Use System One to run Jev recipes over supplied evidence or candidate items. Useful for repeated checks, context selection, palette or item matching and tool recommendations. The calling agent keeps writing, planning and actions.
+description: Use System One to run Jev recipes over supplied evidence or candidate items. Useful for repeated checks, context selection, palette or item matching and tool recommendations. Includes an opt-in dedicated-browser companion for short observed-control tasks. The calling agent owns the task and verifies outcomes.
 ---
 
 # System One
@@ -45,3 +45,10 @@ code for exact matches, counting or known rules. A Jev call helps only when its 
 exceeds the added request and review work. Evidence ratings describe research support,
 not model confidence. Compare complete task quality, latency and cost before claiming
 savings. Recipes and illustrative examples are not benchmark guarantees.
+
+
+## Dedicated browser tasks
+
+If `sysone_computer_start` is available and the task calls for browser interaction,
+read [the browser workflow](references/computer-use.md). The companion has its own
+browser. It does not attach to an existing user tab or control the desktop.

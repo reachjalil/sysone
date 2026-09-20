@@ -1,7 +1,7 @@
 # sysone
 
 The open-source integration package for [System One Engine](https://systemoneengine.com):
-a small HTTP client, a local MCP bridge and an agent skill for bounded evaluations.
+an HTTP client, MCP bridge, dedicated browser companion and agent skill for bounded evaluations.
 
 The System One Engine application and studio are **private-source software**, maintained
 separately. This repository contains the public integration layer. It does not contain
@@ -85,13 +85,36 @@ The engine also exposes Streamable HTTP MCP at `/mcp`; clients that support it c
 connect directly with their supported bearer/OAuth setup. This stdio bridge does
 not run an OAuth login flow. Hosted web clients cannot directly reach loopback.
 
+## Browser companion
+
+Use a local helper with either your cloud account or local engine:
+
+```sh
+npx -y sysone@0.6.0 computer --connection /private/path/agent.json
+```
+
+This is a stdio MCP command. Configure it in an agent that can launch local MCP
+servers. It opens a separate Chrome session only when the agent calls
+`sysone_computer_start`. Chrome or Chromium and Node 22.18+ must be installed.
+`SYSONE_CHROME_PATH` can select the executable. No browser download is included.
+
+The agent receives screenshots and observed control IDs. Jev receives bounded text
+and control descriptions through the configured engine. It proposes the next action.
+The companion executes caller-authorized actions in its own browser and returns the
+new screen. A bounded run performs up to 12 decisions in one tool call, then returns
+its trace and a final screenshot for the agent to verify.
+
+Read [the browser example](examples/computer-use.md) for setup, tool inputs, data flow
+and supported controls. Web-only agents cannot launch this local helper. The hosted
+MCP remains a decision service; noVNC and whole-desktop control are future adapters.
+
 ## Let an agent use Jev
 
 1. Call `sysone_patterns` with `{"query":"palette"}` to find a recipe.
 2. Call `sysone_run` with `pattern`, `state` and the required `candidates`.
 3. Read the answers, usage and recipe policy. Keep an uncertain decision with the calling agent.
 
-The library has 30 recipes, including item matching, source selection, citation
+The engine library includes recipes including item matching, source selection, citation
 checks and diagnostic tests. Selection recipes require your own ID-to-description
 map. The engine adds a `review` choice when no candidate fits. Other decision
 recipes use fixed questions and need only `pattern` and `state`. Use

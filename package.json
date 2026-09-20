@@ -1,7 +1,7 @@
 {
   "name": "sysone",
-  "version": "0.5.0",
-  "description": "Launch System One locally: decision studio, public SDK, MCP bridge and agent skill",
+  "version": "0.6.0",
+  "description": "System One launcher, SDK and MCP browser companion for bounded Jev decisions",
   "type": "module",
   "license": "MIT",
   "author": "Jalil Laaraichi",
@@ -28,6 +28,10 @@
     "./client": {
       "types": "./dist/client.d.ts",
       "import": "./dist/client.js"
+    },
+    "./computer": {
+      "types": "./dist/computer/index.d.ts",
+      "import": "./dist/computer/index.js"
     }
   },
   "files": [
@@ -45,6 +49,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.30.0",
+    "puppeteer-core": "24.39.0",
     "zod": "4.1.13"
   },
   "devDependencies": {
