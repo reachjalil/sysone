@@ -8,7 +8,7 @@ import { computerDoctor } from "./doctor.js";
 import { observeDesktop } from "./desktop.js";
 import { runComputer } from "./run.js";
 export function computerMcpServer(
-  connection: { url: string; token: string },
+  connection: { url: string; token: string | (() => Promise<string>) },
   options: {
     headless?: boolean;
     executablePath?: string;
@@ -319,7 +319,7 @@ export function computerMcpServer(
 export async function startComputerMcp(
   connection: {
     url: string;
-    token: string;
+    token: string | (() => Promise<string>);
   },
   options: { desktop?: boolean } = {},
 ) {

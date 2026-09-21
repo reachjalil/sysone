@@ -174,3 +174,19 @@ MIT licensed. The compiled application runtime is distributed under its separate
 ### Optional caller attribution
 
 Evaluation and recipe requests accept `callerModel` and `reasoningEffort`, for example `"callerModel": "gpt-6-astra", "reasoningEffort": "high"`. Include only values known from the agent configuration; omit unknown values. System One uses them for self-reported, input-only list-price comparisons. They do not change Jev's evaluation. Thinking effort is not treated as a price multiplier. Hosted comparisons require the current server; the launcher pins runtime 0.5.1.
+
+## Use the hosted free allowance from the CLI
+
+```sh
+npx sysone@latest login
+npx sysone@latest status
+npx sysone@latest mcp
+```
+
+Login opens System One Cloud's email sign-in and explicit connection approval. It uses PKCE and a temporary loopback callback, stores scoped credentials in `~/.config/systemoneengine/cloud.json` with mode 0600, and selects cloud as the default. It does not start an inference server or require a Vercel key. All your cloud connections share the account's free allowance.
+
+Use `sysone mcp --target cloud` in a harness's stdio MCP configuration, or `sysone computer --target cloud` to keep browser observation/actions local while sending bounded decision text to cloud. The computer companion still requires its existing local browser setup.
+
+`sysone target local` selects your local engine again; `--target local` overrides the default for one command. Explicit `--connection` wins; existing `SYSONE_URL`/`SYSONE_TOKEN` apply when no explicit target is chosen. `sysone app --target cloud` opens the hosted dashboard. `sysone login --no-open` prints the authorization URL; open it on the same machine, since the callback is local.
+
+Access credentials refresh before expiry; evaluation calls are not retried. `sysone logout` revokes the cloud grant, removes its local credentials and switches to local. If offline, logout reports failure and retains the credential so revocation can be retried. Never paste the credential file into an agent conversation. Existing local connection files remain untouched.
