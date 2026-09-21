@@ -1,6 +1,6 @@
 {
   "name": "sysone",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "System One launcher, SDK and MCP browser companion for bounded Jev decisions",
   "type": "module",
   "license": "MIT",

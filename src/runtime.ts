@@ -1,7 +1,7 @@
-// Reviewed compiled application release. See https://systemoneengine.com/bench/.
+// Reviewed compiled application release.
 export const runtime = {
-  "version": "0.5.0",
-  "url": "https://systemoneengine.com/releases/systemone-runtime-0.5.0.json.gz",
-  "sha256": "c78d284145c3332f6bafed0a981abad0ad1b437dcc2f10b1ed7dfbb6be45dccb",
-  "bytes": 1596995
+  "version": "0.5.1",
+  "url": "https://systemoneengine.com/releases/systemone-runtime-0.5.1.json.gz",
+  "sha256": "c842570645b86253a27913286cf4be9c28c31a7709902c749fcf1d6804b50681",
+  "bytes": 1631218
 };

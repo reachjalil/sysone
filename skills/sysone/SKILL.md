@@ -52,3 +52,5 @@ savings. Recipes and illustrative examples are not benchmark guarantees.
 If `sysone_computer_start` is available and the task calls for browser interaction,
 read [the browser workflow](references/computer-use.md). The companion has its own
 browser. It does not attach to an existing user tab or control the desktop.
+
+When your exact configured model and thinking level are known, include optional `callerModel` and `reasoningEffort` on evaluation and recipe calls, for example `"callerModel": "gpt-6-astra", "reasoningEffort": "high"`. Omit them when unknown; never infer them from a harness name. The engine uses them only for self-reported usage comparisons. Estimated input-cost differences are not measured whole-task or subscription savings.

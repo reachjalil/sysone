@@ -5,6 +5,10 @@ export type Service = (typeof services)[number];
 const id = z.string().min(1).max(160);
 const text = z.string().min(1).max(12000);
 const criterion = z.string().min(1).max(500);
+const callerFields = {
+  callerModel: z.string().trim().min(1).max(100).regex(/^[a-zA-Z0-9._:/-]+$/).optional().describe("Optional exact model ID making this request, when known. Do not guess from the harness name. Used only for usage comparisons."),
+  reasoningEffort: z.enum(["none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra", "unknown"]).optional().describe("Optional caller thinking level, when known. Self-reported attribution, not a billing multiplier."),
+};
 export const ChoiceQuestion = z
   .object({
     type: z.literal("choice"),
@@ -34,6 +38,7 @@ export const Question = z.discriminatedUnion("type", [
 ]);
 export const DecideInput = z
   .object({
+    ...callerFields,
     state: text,
     questions: z
       .record(z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]{0,39}$/), Question)
@@ -43,6 +48,7 @@ export const DecideInput = z
 export type Questions = z.infer<typeof DecideInput>["questions"];
 export const LogsInput = z
   .object({
+    ...callerFields,
     records: z
       .array(
         z
@@ -61,6 +67,7 @@ export const LogsInput = z
   .strict();
 export const TreeInput = z
   .object({
+    ...callerFields,
     state: text,
     question: z.string().min(1).max(1000),
     shape: z.unknown(),
@@ -69,6 +76,7 @@ export const TreeInput = z
   .strict();
 export const DialogueInput = z
   .object({
+    ...callerFields,
     contextId: id,
     trigger: z.string().min(1).max(160),
     room: id,
@@ -112,6 +120,7 @@ export class ServiceError extends Error {
 
 
 export const RunPatternInput = z.object({
+    ...callerFields,
   pattern: z.string().regex(/^[a-z0-9-]{1,64}$/),
   state: z.string().min(1).max(12000),
   candidates: z.record(z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]{0,39}$/), z.string().min(1).max(500))

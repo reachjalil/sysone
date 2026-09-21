@@ -170,3 +170,7 @@ pnpm test
 ```
 
 MIT licensed. The compiled application runtime is distributed under its separate preview license.
+
+### Optional caller attribution
+
+Evaluation and recipe requests accept `callerModel` and `reasoningEffort`, for example `"callerModel": "gpt-6-astra", "reasoningEffort": "high"`. Include only values known from the agent configuration; omit unknown values. System One uses them for self-reported, input-only list-price comparisons. They do not change Jev's evaluation. Thinking effort is not treated as a price multiplier. Hosted comparisons require the current server; the launcher pins runtime 0.5.1.

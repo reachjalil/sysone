@@ -103,7 +103,7 @@ export function serviceMcpServer(client: {
     "sysone_run",
     {
       description:
-        "Run a saved Jev decision recipe without writing question prompts. Supply pattern and state. Selection recipes also require your candidates as an ID-to-description map; review is added automatically. Returns answers, usage and the recipe policy. No actions or text generation. Use sysone_patterns to find a recipe.",
+        "Run a saved Jev decision recipe without writing question prompts. Supply pattern and state. Selection recipes also require your candidates as an ID-to-description map; review is added automatically. Returns answers, usage and the recipe policy. No actions or text generation. Use sysone_patterns to find a recipe. When known, include optional callerModel and reasoningEffort for usage comparisons; never guess.",
       inputSchema: RunPatternInput.shape,
       annotations: {
         readOnlyHint: true,
@@ -137,7 +137,7 @@ export function serviceMcpServer(client: {
     server.registerTool(
       `sysone_${service}`,
       {
-        description: descriptions[service],
+        description: descriptions[service] + " When known, include optional callerModel and reasoningEffort for your usage comparison. Omit unknown values; never infer them from the client name.",
         inputSchema: inputSchemas[service].shape,
         annotations: {
           readOnlyHint: true,
