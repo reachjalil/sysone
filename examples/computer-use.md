@@ -36,7 +36,7 @@ needs this consumer token, not the Vercel provider key.
   "mcpServers": {
     "system-one-computer": {
       "command": "npx",
-      "args": ["-y", "sysone@0.6.0", "computer", "--connection", "/private/path/agent.json"]
+      "args": ["-y", "sysone@0.7.0", "computer", "--connection", "/private/path/agent.json"]
     }
   }
 }

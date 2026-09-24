@@ -82,19 +82,20 @@ If no explicit connection or environment pair is supplied, the CLI reads
 administrator token. Avoid putting tokens directly in command-line arguments.
 
 The engine also exposes Streamable HTTP MCP at `/mcp`; clients that support it can
-connect directly with their supported bearer/OAuth setup. This stdio bridge does
-not run an OAuth login flow. Hosted web clients cannot directly reach loopback.
+connect directly with their supported bearer/OAuth setup. For cloud, run
+`sysone login` first; the stdio bridge then uses that approved connection without
+prompting inside MCP. Hosted web clients cannot directly reach loopback.
 
 ## Browser companion
 
-Version 0.6.0 is a source preview until its npm publication completes. To test this
-checkout now, run `pnpm install --frozen-lockfile`, `pnpm build`, then
-`node dist/cli.js computer doctor`.
+The opt-in browser companion is included in `sysone@0.7.0`. Run
+`npx -y sysone@0.7.0 computer doctor` to check its local prerequisites without a
+browser action or model call.
 
 Use a local helper with either your cloud account or local engine:
 
 ```sh
-npx -y sysone@0.6.0 computer --connection /private/path/agent.json
+npx -y sysone@0.7.0 computer --connection /private/path/agent.json
 ```
 
 This is a stdio MCP command. Configure it in an agent that can launch local MCP

@@ -14,7 +14,7 @@ export function serviceMcpServer(client: {
     signal?: AbortSignal,
   ): Promise<Record<string, unknown>>;
 }) {
-  const server = new McpServer({ name: "systemoneengine", version: "0.5.0" });
+  const server = new McpServer({ name: "systemoneengine", version: "0.7.0" });
 
   const descriptions = {
     decide:
