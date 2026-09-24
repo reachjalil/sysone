@@ -14,6 +14,9 @@ Keep native permission checks non-prompting; do not capture unrelated apps, post
 input events or expose native IDs as browser action targets. Jev never receives raw pixels or executes
 model-generated selectors, coordinates, scripts or text.
 Public contract changes must remain compatible with the private engine.
+Provider choice and credentials belong to the engine host. Client guidance must
+match the pinned published runtime, which may lag source-engine provider support;
+never imply that a provider is selectable from a consumer MCP call.
 Run pnpm test and inspect npm pack --dry-run before publishing. Do not contact other tasks.
 
 Cloud CLI login uses the existing engine-resource OAuth authorization with S256 PKCE, state and issuer verification, a temporary loopback callback and private atomic credential storage. Preserve explicit consent, scope/expiry checks, rotation/revocation, target precedence and no inference retries. Credentials must never enter stdout/MCP output or the repository.

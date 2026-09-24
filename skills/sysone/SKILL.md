@@ -6,8 +6,12 @@ description: Use System One to run Jev recipes over supplied evidence or candida
 # System One
 
 Use an existing scoped connection. The user starts the local app with `npx sysone`
-and configures its provider in Studio. Ask `sysone_status` when connection limits
-or service availability are unknown. Do not request the provider key in chat.
+and configures its provider in Studio. The currently pinned local runtime can lag
+the source engine: newer source and self-hosted engines can route Jev through
+Vercel AI Gateway, TypeSafe AI direct or Cloudflare Workers AI. The hosted service
+uses its own Vercel route. Provider selection and credentials belong to the engine
+owner, never to an agent tool call. Ask `sysone_status` when connection limits or
+service availability are unknown; do not request a provider key in chat.
 
 For a small decision, search `sysone_patterns` with one or two task words such as
 `palette`, `item`, `citation` or `tool`. The compact result names the recipe, its
